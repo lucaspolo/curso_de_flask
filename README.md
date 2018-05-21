@@ -138,3 +138,113 @@ Headers([('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', '190')
 >>> client.get('/user/david/').data
 b'\n            <h1>David Brent</h1>\n            <img src="https://api.adorable.io/avatars/100/david.png"/><br/>\n            Telefone: 5555-5555<br/>\n            <a href="/">Voltar</a>\n        '
 ```
+
+
+## Conversores de URL
+
+Pode ser conveniente converter os parâmetros recebidos na URL, pois por padrão o Flask deixa eles como string. 
+
+Para converter para inteiro por exemplo, podemos usar algo como o código abaixo:
+
+```python
+@app.route('/user/<username>/<int:quote_id>/')
+def quote(username, quote_id):
+    user = db.users.get(username, {})
+    ...
+```
+
+Perceba que o tipo foi passando na seguinte estrutura: `<tipo>:<nome_parametro>`. Além de converter para o tipo apropriado, o match na rota só ocorre quando o tipo é o correto, entrando assim na view.
+
+Temos muitos outros conversores que podem ajudar na hora do desenvolvimento, como podemos inspecionar:
+
+```python
+In [1]: app.url_map.converters
+Out[1]: 
+{'default': werkzeug.routing.UnicodeConverter,
+ 'string': werkzeug.routing.UnicodeConverter,
+ 'any': werkzeug.routing.AnyConverter,
+ 'path': werkzeug.routing.PathConverter,
+ 'int': werkzeug.routing.IntegerConverter,
+ 'float': werkzeug.routing.FloatConverter,
+ 'uuid': werkzeug.routing.UUIDConverter}
+
+```
+
+Outro exemplo é o conversor `path`, que permite receber caminhos de arquivo completos:
+
+```python
+@app.route('/file/<path:filename>/')
+def filepath(filename):
+    return f"Argumento recebido: {filename}"
+```
+
+Apesar dos conversores já existentes, é possível criar conversores adicionais. Suponhamos que queremos criar um conversor que capture a URL a partir de uma regex, como abaixo:
+
+```python
+@app.route('/reg/<regex("a.*"):name>/')
+def reg(name):
+    return f"Argumento iniciado com a letra a: {name}"
+```
+
+Para implementarmos este converter é necessário que extendamos a classe BaseConverter do Flask e registremos ela no app:
+
+```python
+# Converter
+from werkzeug.routing import BaseConverter
+
+
+class RegexConverter(BaseConverter):
+    def __init__(self, url_map, *items):
+        super(RegexConverter, self).__init__(url_map)
+        self.regex = items[0]
+
+# Registrando no app
+app.url_map.converters['regex'] = RegexConverter
+```
+
+Também é possível criar um conversor para receber listar de parâmetros, para isto sobrescrevemos dois métodos do BaseConverter:
+
+```python
+class ListConverter(BaseConverter):
+    """nome+nome2+nome3+nome..."""
+
+    def to_python(self, value):
+        """
+            Método reponsável para converter um tipo do Python
+        """
+        return value.split('+')
+
+
+    def to_url(self, values):
+        """
+            Método responsável para converter tipo Python para URL.
+            Caso seja uma string ele irá manter, senão irá fazer o join colocando '+' entre os parâmetros
+        """
+        return '+'.join(
+            BaseConverter.to_url(self, item) for item in values
+        ) if not isinstance(values, str) else BaseConverter.to_url(self,values)
+
+```
+
+Basta registrar o novo converter e utilizar normalmente, recuperando assim uma lista de parâmetros agora:
+
+```python
+app.url_map.converters['list'] = ListConverter
+
+def profile(usernames):
+
+    html = ""
+
+    for username in set(usernames):
+        user = db.users.get(username, {})
+
+        if user:
+            html += f"""
+                <h1>{user['name']}</h1>
+                <img src="{user['image']}"/><br/>
+                Telefone: {user['tel']}<br/>
+                <a href="{url_for('index')}">Voltar</a>
+                <hr />
+            """
+    return html or abort(404, "Users not fount")
+```
