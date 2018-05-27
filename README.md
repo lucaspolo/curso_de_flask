@@ -248,3 +248,148 @@ def profile(usernames):
             """
     return html or abort(404, "Users not fount")
 ```
+
+## Novidades do Flask 1.x
+
+Primeiramente, o suporte para Python 2.6 foi removido, permitindo assim rodar apenas em Python >= 2.7.
+
+### App Flask
+
+Agora o app criado a partir do objeto Flask permite receber mais dois parâmetros:
+
+```python
+app = Flask(
+    __name__,
+    host_matching = True, # Permite fazer matching também no host, padrão (False) é considerar apenas o que está depois de '/'
+    static_host = "cdn.x.com" # Onde buscar arquivos estásticos.
+)
+```
+
+Considerando o segundo parâmetro, quando usarmos `url_for('static', filename=...)` ele irá considerar a URL apontada em `static_host`.
+
+### Blueprint
+
+A classe Blueprint, que permite criar um modelo de aplicação conhecido como módulo para ser reutilizado, agora recebe opicinalmente dois parâmetros:
+
+```python
+mod = Blueprint(
+    'mymod',
+    __name__,
+    json_encode = MyJSON,
+    json_decoder = MyJSON,
+)
+```
+
+Assim é possível alterar o JSONEnconder sem afetar o padrão.
+
+### Servidor de testes multi-thread
+
+Agora o servidor de teste, rodado em `flask run`, agora é multi-thread por padrão, permitindo atender mais de um request.
+
+### Extensões
+
+Agora as extensões do Flask precisam referênciar diretamente na hora do import:
+
+```python
+# Depreciado
+from flask.ext.admin import Admin
+
+# Nova forma
+from flask_admin import Admin
+```
+
+### Logger
+
+O logger padrão do Flask teve melhorias e por padrão o handler será Flask.App
+
+### cli_test_runner & json_security_fix
+
+Agora é possível programaticamente invocar o comando `cli` programaticamente, permitindo assim testar melhor comandos `cli` do Flask (ex: `flask run`)
+
+Para não abrir brechas de segurança, agora o Flask sempre retorne "UTF-8" a não ser que seja explicitamente informado para outro enconding. Anteriormente ele retornava o mesmo enconding da requisição, abrindo brechas de segurança.
+
+### Documentação
+
+A documentação foi atualizada, o tutorial também.
+
+### Principais comando novos para o flask cli
+
+Agora não é recomendado dar um `app.run()` na aplicação programaticamente. Assim devemos rodar direto pela linha de comando. 
+
+Primeiro exportamos a variável de ambiente indicando onde está a aplicação principal e depois `flask run`:
+
+```bash
+export FLASK_APP=app.py # A extensão é opcional
+flask run
+```
+
+Agora é mais fácil verificar as rotas da aplicação:
+
+```bash
+$ flask routes
+Endpoint  Methods  Rule
+--------  -------  --------------------------------
+filepath  GET      /file/<path:filename>/
+index     GET      /
+quote     GET      /user/<username>/<int:quote_id>/
+reg       GET      /reg/<regex("a.*"):name>/
+reg_b     GET      /reg/<regex("b.*"):name>/
+static    GET      /static/<path:filename>
+user      GET      /user/<list:usernames>/
+```
+
+Para o app discovery também é opicional o nome `app`, antes era obrigatório na declaração da app:
+
+```python
+# Anteriormente
+app = Flask(__name__)
+
+# Agora
+qualquer_nome = Flask(__name__)
+
+```
+
+Outra recomendação é sobre a application factory, que retorna a aplicação registrada e organizando melhor o código.
+
+```python
+def create_app():
+
+    app = Flask(__name__)
+    ...
+```
+
+Anteriormente o app discovery não conseguia iniciar a aplicação, porém agora é possíve pela variável de ambiente:
+
+```bash
+export FLASK_APP=app:create_app
+```
+
+Ele irá invocar a função para pegar o app criado. O `create_app` e `make_app` são reconhecidos por padrão, não sendo necessário específicar eles na variável de ambientes, outros nomes precisam ser específicados.
+
+### Flask .env
+
+Para facilitar a vida, agora o Flask suporta os arquivos .env, assim não é necessário ficar declarando variável de ambiente manualmente:
+
+```bash
+FLASK_APP=app
+```
+É necessário instalar o módulo `python-dotenv` para que o arquivo seja carregado.
+
+Para definir o tipo de ambiente use `FLASK_ENV`:
+
+```python
+export FLASK_ENV=[production|development]
+```
+
+Assim já carregará com o auto-reloader, em debug e com enviroment de development.
+
+### Test Client
+
+Ao fazer requisições pelo test client era necessário específicar o `data` e o `header`, mesmo para conteúdo json. Agora quando for testar APIs com Json, pode-se enviar diretamente a requisição com o atributo json:
+
+```python
+client = app.test_client()
+client.post('/', json={'a': '1', 'b': '2'})
+```
+
+Agilizando assim o teste de APIs.
