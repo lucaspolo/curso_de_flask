@@ -269,7 +269,7 @@ Considerando o segundo parâmetro, quando usarmos `url_for('static', filename=..
 
 ### Blueprint
 
-A classe Blueprint, que permite criar um modelo de aplicação conhecido como módulo para ser reutilizado, agora recebe opicinalmente dois parâmetros:
+A classe Blueprint, que permite criar um modelo de aplicação conhecido como um módulo para ser reutilizado, agora recebe opicinalmente dois parâmetros:
 
 ```python
 mod = Blueprint(
@@ -284,7 +284,7 @@ Assim é possível alterar o JSONEnconder sem afetar o padrão.
 
 ### Servidor de testes multi-thread
 
-Agora o servidor de teste, rodado em `flask run`, agora é multi-thread por padrão, permitindo atender mais de um request.
+O servidor de teste, rodado em `flask run`, agora é multi-thread por padrão, permitindo atender mais de um request.
 
 ### Extensões
 
@@ -304,7 +304,7 @@ O logger padrão do Flask teve melhorias e por padrão o handler será Flask.App
 
 ### cli_test_runner & json_security_fix
 
-Agora é possível programaticamente invocar o comando `cli` programaticamente, permitindo assim testar melhor comandos `cli` do Flask (ex: `flask run`)
+Agora é possível invocar o comando `cli` programaticamente, permitindo assim testar melhor comandos `cli` do Flask (ex: `flask run`)
 
 Para não abrir brechas de segurança, agora o Flask sempre retorne "UTF-8" a não ser que seja explicitamente informado para outro enconding. Anteriormente ele retornava o mesmo enconding da requisição, abrindo brechas de segurança.
 
